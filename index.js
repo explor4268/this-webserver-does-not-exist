@@ -7,7 +7,7 @@ const extTable=[
     {
         mime: "text/html; charset=utf-8",
         exts: ["html","htm","php","aspx","jsp","cgi","shtml","dhtml","xht","xhtml"],
-        sysprompt: "Generate a complete HTML page and **ensure that all relevant resources/assets are contained in a single file if possible.** External resources are prohibited. You could hallucinate the content as long as it aligns with the predicted content based on the path, and make sure to generate 2 paragraphs of content or more, with some related links below it.",
+        sysprompt: "Generate a complete HTML page and **ensure that all relevant resources/assets are contained in a single file if possible. No external CSS/JS if possible.** External resources are prohibited. You could hallucinate the content as long as it aligns with the predicted content based on the path, and make sure to generate 2 paragraphs of content or more, with some related links below it.",
         hint: "<!DOCTYPE html>",
         writeHint: true,
         blockMarkdown: false
@@ -332,19 +332,25 @@ function pathToTypeContext(path){
 
 const imaginaryOwnerFirstname="Rick";
 const baseURL="http://rickswebsite.localhost:8080";
-function getAPIOpt(path,ftypeContext){
+const useThinking=true;
+const logThinking=true;
+const enableHints=false;
+
+function getAPIOpt(path,ftypeContext,referer){
+    let blockMarkdown=(!enableHints)||ftypeContext.blockMarkdown;
     let apiopt={
-        model: "qwen2.5-coder:0.5b",
+        model: "qwen3:1.7b",
+        think: useThinking,
         messages: [{
             role: "system",
-            content: `You are an HTTP request handler. Only output content matching with the path. ${ftypeContext.sysprompt} ${ftypeContext.blockMarkdown?"Output the code directly. ":""}Owner name is ${imaginaryOwnerFirstname}.${ftypeContext.blockMarkdown?' Remember, only output code without Markdown code block formatting. No "```", just code.':""} No explanations at the end, please!`
+            content: `You are an HTTP request handler. Only output content matching with the path. ${ftypeContext.sysprompt} ${blockMarkdown?"Output the code directly. ":""}Owner name is ${imaginaryOwnerFirstname}.${blockMarkdown?' Remember, only output code without Markdown code block formatting. No "```", just code.':""} **No explanations at the end, please!**`
         }]
     };
     apiopt.messages.push({
         role: "user",
-        content: `Path: ${baseURL}${path}`
+        content: `Path: ${baseURL}${path}`+(referer?`\nReferer: ${referer}`:"")
     });
-    if(ftypeContext.hint!==null)apiopt.messages.push({
+    if(enableHints&&ftypeContext.hint!==null)apiopt.messages.push({
         role: "assistant",
         content: ftypeContext.hint
     });
@@ -354,7 +360,7 @@ function getAPIOpt(path,ftypeContext){
 
 const server=http.createServer((req,res)=>{
     let headerWritten=false,styleInjected=false;
-    console.log("PATH: "+req.url);
+    console.log(`Path: ${req.url}`+(req.headers.referer?`\nReferer: ${req.headers.referer}`:""));
     const ftypeContext=pathToTypeContext(req.url);
     console.log(ftypeContext);
     if(ftypeContext.mime==="{UNSUPPORTED}"){
@@ -369,7 +375,7 @@ const server=http.createServer((req,res)=>{
         res.end("<h1>Error 400: Bad Request</h1><h2>Binary File Types are Not Supported!</h2><p>Based on the file extension, the file type you have requested cannot be generated.</p>\n");
         return;
     }
-    const postData=getAPIOpt(req.url,ftypeContext);
+    const postData=getAPIOpt(req.url,ftypeContext,req.headers.referer);
     const options={
         hostname: 'localhost',
         port: 11434,
@@ -390,7 +396,7 @@ const server=http.createServer((req,res)=>{
                 'X-Accel-Buffering': 'no',
                 'Cache-Control': 'no-cache'
             });
-            if(ftypeContext.hint!==null&&ftypeContext.writeHint)res.write(ftypeContext.hint);
+            if(enableHints&&ftypeContext.hint!==null&&ftypeContext.writeHint)res.write(ftypeContext.hint);
             headerWritten=true;
         }
 
@@ -399,9 +405,28 @@ const server=http.createServer((req,res)=>{
             try{
                 let respobj=JSON.parse(resp);
                 let part=respobj.message.content;
+                if(respobj.done||part===""){
+                    if(logThinking&&respobj?.message?.thinking)process.stdout.write(respobj.message.thinking);
+                    return;
+                }
                 process.stdout.write(part);
                 // console.log(`<part>${part}</part>`);
-                if(!(ftypeContext.blockMarkdown&&(part.startsWith("``")||(prevData==="```"&&/^[a-z]+\n{0,1}$/.test(part))||(prevData==="``"&&part.startsWith("`")))))res.write(part)
+                if(!(
+                    (
+                        (!enableHints)||
+                        ftypeContext.blockMarkdown
+                    )&&
+                    (
+                        part.startsWith("``")||
+                        (
+                            prevData==="```"&&
+                            /^[a-z]+\n{0,1}$/.test(part)
+                        )||(
+                            prevData==="``"&&
+                            part.startsWith("`")
+                        )
+                    )
+                ))res.write(part)
                 if((!styleInjected)&&(part==="<head>"||prevData.startsWith("<head"))){
                     res.write('<style id="wjxcvb">/*injected by the server to allow inspection by the user*/style,script{display:block;white-space:pre-wrap;font-family:monospace}#wjxcvb{display:none}style::before{content:"[STYLE TAG]"}style::after{content:"[END STYLE TAG]"}script::before{content:"[SCRIPT TAG]";}script::after{content:"[END SCRIPT TAG]"}</style>\n');
                     styleInjected=true;
