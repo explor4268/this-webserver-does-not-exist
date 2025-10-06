@@ -405,7 +405,7 @@ const server=http.createServer((req,res)=>{
             try{
                 let respobj=JSON.parse(resp);
                 let part=respobj.message.content;
-                if(respobj.done||part===""){
+                if(part===""){
                     if(logThinking&&respobj?.message?.thinking)process.stdout.write(respobj.message.thinking);
                     return;
                 }
