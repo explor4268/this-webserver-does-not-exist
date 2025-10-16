@@ -8,7 +8,7 @@ const extTable=[
         mime: "text/html; charset=utf-8",
         exts: ["html","htm","php","aspx","jsp","cgi","shtml","dhtml","xht","xhtml"],
         sysprompt: "Generate a complete HTML page and **ensure that all relevant resources/assets are contained in a single file if possible. No external CSS/JS if possible.** External resources are prohibited. You could hallucinate the content as long as it aligns with the predicted content based on the path, and make sure to generate 2 paragraphs of content or more, with some related links below it.",
-        hint: "<!DOCTYPE html>",
+        hint: "<!DOCTYPE html>\n",
         writeHint: true,
         blockMarkdown: false
     },{
@@ -232,42 +232,42 @@ const extTable=[
         mime: "text/x-sh; charset=utf-8",
         exts: ["sh"],
         sysprompt: "Generate a POSIX-compliant shell script.",
-        hint: "#!/bin/sh",
+        hint: "#!/bin/sh\n",
         writeHint: true,
         blockMarkdown: false
     },{
         mime: "text/x-sh; charset=utf-8",
         exts: ["bash"],
         sysprompt: "Generate a Bash script.",
-        hint: "#!/bin/bash",
+        hint: "#!/bin/bash\n",
         writeHint: true,
         blockMarkdown: false
     },{
         mime: "text/x-sh; charset=utf-8",
         exts: ["fish"],
         sysprompt: "Generate a fish shell script.",
-        hint: "#!/usr/bin/env fish",
+        hint: "#!/usr/bin/env fish\n",
         writeHint: true,
         blockMarkdown: false
     },{
         mime: "text/x-sh; charset=utf-8",
         exts: ["zsh"],
         sysprompt: "Generate a ZSH shell script.",
-        hint: "#!/usr/bin/env zsh",
+        hint: "#!/usr/bin/env zsh\n",
         writeHint: true,
         blockMarkdown: false
     },{
         mime: "text/x-csh; charset=utf-8",
         exts: ["csh"],
         sysprompt: "Generate a C-shell script.",
-        hint: "#!/bin/csh",
+        hint: "#!/bin/csh\n",
         writeHint: true,
         blockMarkdown: false
     },{
         mime: "application/x-msdownload; charset=utf-8",
         exts: ["bat","cmd"],
         sysprompt: "Generate a Windows cmd batch script.",
-        hint: "@echo off",
+        hint: "@echo off\n",
         writeHint: true,
         blockMarkdown: false
     },{
